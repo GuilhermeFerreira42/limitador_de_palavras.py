@@ -3,7 +3,7 @@ import wx.stc
 
 class LimitadorPalavrasApp(wx.Frame):
     def __init__(self):
-        super().__init__(parent=None, title="Limitador de Palavras", size=(600, 650))
+        super().__init__(parent=None, title="Limitador de Palavras", size=(600, 700))
 
         # Criar painel principal
         panel = wx.Panel(self)
@@ -33,11 +33,18 @@ class LimitadorPalavrasApp(wx.Frame):
         # Botões principais
         botoes_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.btn_processar = wx.Button(panel, label="Processar")
+        self.btn_proximo = wx.Button(panel, label="Próximo")
+        self.btn_anterior = wx.Button(panel, label="Anterior")
+        self.btn_limpar = wx.Button(panel, label="Limpar")
         botoes_sizer.Add(self.btn_processar, 0, wx.ALL, 5)
+        botoes_sizer.Add(self.btn_anterior, 0, wx.ALL, 5)
+        botoes_sizer.Add(self.btn_proximo, 0, wx.ALL, 5)
+        botoes_sizer.Add(self.btn_limpar, 0, wx.ALL, 5)
         
         # Labels de contagem
         self.label_contagem_texto = wx.StaticText(panel, label="Palavras: 0")
         self.label_contagem_resultado = wx.StaticText(panel, label="Palavras: 0")
+        self.label_contador_partes = wx.StaticText(panel, label="Parte 0 de 0")
         
         # Adicionar elementos ao sizer principal
         main_sizer.Add(palavras_sizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -48,6 +55,7 @@ class LimitadorPalavrasApp(wx.Frame):
         main_sizer.Add(resultado_label, 0, wx.ALL, 5)
         main_sizer.Add(self.entry_resultado, 1, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(self.label_contagem_resultado, 0, wx.ALL, 5)
+        main_sizer.Add(self.label_contador_partes, 0, wx.ALL, 5)
         
         # Configurar o sizer
         panel.SetSizer(main_sizer)
@@ -59,6 +67,15 @@ class LimitadorPalavrasApp(wx.Frame):
         self.entry_texto.Bind(wx.stc.EVT_STC_CHANGE, self.atualizar_contagem_texto)
         self.entry_resultado.Bind(wx.stc.EVT_STC_CHANGE, self.atualizar_contagem_resultado)
         self.btn_processar.Bind(wx.EVT_BUTTON, self.processar_texto)
+        self.btn_proximo.Bind(wx.EVT_BUTTON, self.proximo)
+        self.btn_anterior.Bind(wx.EVT_BUTTON, self.anterior)
+        self.btn_limpar.Bind(wx.EVT_BUTTON, self.limpar_campos)
+        
+        # Variáveis para controle de partes
+        self.texto_original = ""
+        self.limite_palavras = 0
+        self.partes = []
+        self.parte_atual = 0
         
         # Mostrar a janela
         self.Show()
@@ -69,23 +86,47 @@ class LimitadorPalavrasApp(wx.Frame):
         event.Skip()
 
     def atualizar_contagem_resultado(self, event):
-        texto = self.entry_resultado.GetText()
+        texto = self.entry_resultado .GetText()
         self.label_contagem_resultado.SetLabel(f"Palavras: {len(texto.split())}")
         event.Skip()
 
     def processar_texto(self, event):
         try:
-            limite_palavras = int(self.entry_remover.GetValue())
+            self.limite_palavras = int(self.entry_remover.GetValue())
             texto = self.entry_texto.GetText().strip()
+            self.texto_original = texto
             
             palavras = texto.split()
-            palavras_processadas = ' '.join(palavras[:limite_palavras])
+            self.partes = [' '.join(palavras[i:i + self.limite_palavras]) for i in range(0, len(palavras), self.limite_palavras)]
+            self.parte_atual = 0
             
-            resultado_final = palavras_processadas
-            self.entry_resultado.SetText(resultado_final)
+            self.mostrar_parte()
         except ValueError:
-            wx.MessageBox("Por favor, insira um número válido.", "Erro",
-                         wx.OK | wx.ICON_ERROR)
+            wx.MessageBox("Por favor, insira um número válido.", "Erro", wx.OK | wx.ICON_ERROR)
+
+    def mostrar_parte(self):
+        if self.partes:
+            parte_texto = self.partes[self.parte_atual]
+            self.entry_resultado.SetText(parte_texto)
+            self.label_contador_partes.SetLabel(f"Parte {self.parte_atual + 1} de {len(self.partes)}")
+
+    def proximo(self, event):
+        if self.parte_atual < len(self.partes) - 1:
+            self.parte_atual += 1
+            self.mostrar_parte()
+
+    def anterior(self, event):
+        if self.parte_atual > 0:
+            self.parte_atual -= 1
+            self.mostrar_parte()
+
+    def limpar_campos(self, event):
+        self.entry_remover.SetValue("")
+        self.entry_texto.SetText("")
+        self.entry_resultado.SetText("")
+        self.label_contagem_texto.SetLabel("Palavras: 0")
+        self.label_contagem_resultado.SetLabel("Palavras: 0")
+        self.label_contador_partes.SetLabel("Parte 0 de 0")
 
 if __name__ == "__main__":
     app = wx.App(False)
